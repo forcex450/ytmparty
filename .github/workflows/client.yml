@@ -6,7 +6,7 @@ on:
     paths: [ 'client/**/*' ]
 
 jobs:
-  install-client:
+  install:
 
     runs-on: ubuntu-latest
     
@@ -24,9 +24,9 @@ jobs:
       - run: yarn install
 
 
-  build-client:
+  build:
 
-    needs: [install-client]
+    needs: [install]
 
     runs-on: ubuntu-latest
     
@@ -41,12 +41,11 @@ jobs:
           node-version: '16'
           cache: 'yarn'
           cache-dependency-path: client/yarn.lock
-      - run: yarn install
       - run: yarn run build
 
   
-  test-client:
-    needs: [ build-client ]
+  test:
+    needs: [build]
 
     runs-on: ubuntu-latest
       
@@ -57,9 +56,35 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
+      - uses: trmcnvn/chrome-addon@v2
+      - uses: trmcnvn/firefox-addon@v1
         with:
           node-version: '16'
           cache: 'yarn'
           cache-dependency-path: client/yarn.lock
-      - run: yarn install
+          extension: abcdefg
+          zip: build/my-addon.zip
+          client-id: ${{ secrets.CHROME_CLIENT_ID }}
+          client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          
+          uuid: '{7b312f5e-9680-436b-acc1-9b09f60e8aaa}'
+          xpi: build/my-addon.xpi
+          manifest: manifest.json
+          api-key: ${{ secrets.FIREFOX_API_KEY }}
+          api-secret: ${{ secrets.FIREFOX_API_SECRET }}
       - run: yarn run test
+      
+  announce:
+    needs: [test]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: appleboy/discord-action@master
+
+        with:
+          webhook_id: ${{ secrets.WEBHOOK_ID }}
+          webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
+          args: "Client pipeline succesfully passed."
